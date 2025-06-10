@@ -1,5 +1,5 @@
 
-import Tesseract from 'tesseract.js';
+import { createWorker } from 'tesseract.js';
 
 // Document categories and their keywords (based on your Python script)
 const CATEGORIES = {
@@ -52,15 +52,16 @@ export const processDocument = async (file: File): Promise<ProcessingResult> => 
 };
 
 const extractTextFromImage = async (file: File): Promise<string> => {
-  const { data: { text } } = await Tesseract.recognize(
-    file,
-    'eng+hin', // English and Hindi languages
-    {
-      logger: m => console.log('OCR Progress:', m)
-    }
-  );
+  const worker = await createWorker('eng+hin');
   
-  return text.toLowerCase();
+  try {
+    const { data: { text } } = await worker.recognize(file);
+    await worker.terminate();
+    return text.toLowerCase();
+  } catch (error) {
+    await worker.terminate();
+    throw error;
+  }
 };
 
 const extractTextFromPDF = async (file: File): Promise<string> => {
